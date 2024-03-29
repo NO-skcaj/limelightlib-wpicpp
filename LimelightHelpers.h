@@ -260,7 +260,7 @@ namespace LimelightHelpers
         setLimelightNTDoubleArray(limelightName, "robot_orientation_set", entries);
     }
 
-    void SetFiducialIDFiltersOverride(const std::string& limelightName, const std::vector<int>& validIDs) 
+    inline void SetFiducialIDFiltersOverride(const std::string& limelightName, const std::vector<int>& validIDs) 
     {
         std::vector<double> validIDsDouble(validIDs.begin(), validIDs.end());
         setLimelightNTDoubleArray(limelightName, "fiducial_id_filters_set", validIDsDouble);
@@ -375,7 +375,7 @@ namespace LimelightHelpers
             }
         }
 
-        return PoseEstimate(pose, timestamp, latency, tagCount, tagSpan, tagDist, tagArea);
+        return PoseEstimate(pose, timestamp, latency, tagCount, tagSpan, tagDist, tagArea, rawFiducials);
     }
 
     inline PoseEstimate getBotPoseEstimate_wpiBlue(const std::string &limelightName = "") {
