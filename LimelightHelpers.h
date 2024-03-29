@@ -284,6 +284,21 @@ namespace LimelightHelpers
         return inData[position];
     }
 
+    class RawFiducial 
+    {
+    public:
+        int id{0};
+        double txnc{0.0};
+        double tync{0.0};
+        double ta{0.0};
+        double distToCamera{0.0};
+        double distToRobot{0.0};
+        double ambiguity{0.0};
+
+        RawFiducial(int id, double txnc, double tync, double ta, double distToCamera, double distToRobot, double ambiguity)
+            : id(id), txnc(txnc), tync(tync), ta(ta), distToCamera(distToCamera), distToRobot(distToRobot), ambiguity(ambiguity) {}
+    };
+
     class PoseEstimate
     {
     public:
@@ -294,13 +309,16 @@ namespace LimelightHelpers
         double tagSpan{0.0};
         double avgTagDist{0.0};
         double avgTagArea{0.0};
+        std::vector<RawFiducial> rawFiducials;
 
         PoseEstimate() = default;
 
-         PoseEstimate(const frc::Pose2d& pose, units::time::second_t timestampSeconds, double latency, int tagCount, double tagSpan, double avgTagDist, double avgTagArea)
+         PoseEstimate(const frc::Pose2d& pose, units::time::second_t timestampSeconds, 
+            double latency, int tagCount, double tagSpan, double avgTagDist, double avgTagArea,
+            const std::vector<RawFiducial>& rawFiducials)
             : pose(pose), timestampSeconds(timestampSeconds), 
                 latency(latency), tagCount(tagCount), tagSpan(tagSpan), 
-                avgTagDist(avgTagDist), avgTagArea(avgTagArea)
+                avgTagDist(avgTagDist), avgTagArea(avgTagArea), rawFiducials(rawFiducials)
         {
         }
     };
@@ -319,6 +337,26 @@ namespace LimelightHelpers
         // getLastChange: microseconds; latency: milliseconds
         units::time::second_t timestamp = units::time::second_t((poseEntry.GetLastChange() / 1000000.0) - (latency / 1000.0));
 
+        std::vector<RawFiducial> rawFiducials;
+        int valsPerFiducial = 7;
+        int expectedTotalVals = 11 + valsPerFiducial * tagCount;
+        
+        if (poseArray.size() == expectedTotalVals) 
+        {
+            for (int i = 0; i < tagCount; i++) 
+            {
+                int baseIndex = 11 + (i * valsPerFiducial);
+                int id = static_cast<int>(extractBotPoseEntry(poseArray, baseIndex));
+                double txnc = extractBotPoseEntry(poseArray, baseIndex + 1);
+                double tync = extractBotPoseEntry(poseArray, baseIndex + 2);
+                double ta = extractBotPoseEntry(poseArray, baseIndex + 3);
+                double distToCamera = extractBotPoseEntry(poseArray, baseIndex + 4);
+                double distToRobot = extractBotPoseEntry(poseArray, baseIndex + 5);
+                double ambiguity = extractBotPoseEntry(poseArray, baseIndex + 6);
+                rawFiducials.emplace_back(id, txnc, tync, ta, distToCamera, distToRobot, ambiguity);
+            }
+        }
+
         return PoseEstimate(pose, timestamp, latency, tagCount, tagSpan, tagDist, tagArea);
     }
 
@@ -330,6 +368,14 @@ namespace LimelightHelpers
         return getBotPoseEstimate(limelightName, "botpose_wpired");
     }
 
+    inline PoseEstimate getBotPoseEstimate_wpiBlue_MegaTag2(const std::string &limelightName = "") {
+        return getBotPoseEstimate(limelightName, "botpose_orb_wpiblue");
+    }
+
+    inline PoseEstimate getBotPoseEstimate_wpiRed_MegaTag2(const std::string &limelightName = "") {
+        return getBotPoseEstimate(limelightName, "botpose_orb_wpired");
+    }
+     
     inline const double INVALID_TARGET = 0.0;
     class SingleTargetingResultClass
     {
