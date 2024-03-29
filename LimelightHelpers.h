@@ -248,6 +248,24 @@ namespace LimelightHelpers
         setLimelightNTDoubleArray(limelightName, "crop", cropWindow);
     }
 
+    /**
+     * Sets the robot orientation for mt2.
+     */
+    inline void SetRobotOrientation(const std::string& limelightName, 
+        double yaw, double yawRate, 
+        double pitch, double pitchRate, 
+        double roll, double rollRate) 
+    {
+        std::vector<double> entries = {yaw, yawRate, pitch, pitchRate, roll, rollRate};
+        setLimelightNTDoubleArray(limelightName, "robot_orientation_set", entries);
+    }
+
+    void SetFiducialIDFiltersOverride(const std::string& limelightName, const std::vector<int>& validIDs) 
+    {
+        std::vector<double> validIDsDouble(validIDs.begin(), validIDs.end());
+        setLimelightNTDoubleArray(limelightName, "fiducial_id_filters_set", validIDsDouble);
+    }
+
     /////
     /////
 
