@@ -260,6 +260,32 @@ namespace LimelightHelpers
         setLimelightNTDoubleArray(limelightName, "robot_orientation_set", entries);
     }
 
+    inline void SetFiducialDownscaling(const std::string& limelightName, float downscale) 
+    {
+        int d = 0; // pipeline
+        if (downscale == 1.0)
+        {
+            d = 1;
+        }
+        if (downscale == 1.5)
+        {
+            d = 2;
+        }
+        if (downscale == 2)
+        {
+            d = 3;
+        }
+        if (downscale == 3)
+        {
+            d = 4;
+        }
+        if (downscale == 4)
+        {
+            d = 5;
+        }
+        setLimelightNTDouble(limelightName, "fiducial_downscale_set", d);
+    }
+
     inline void SetFiducialIDFiltersOverride(const std::string& limelightName, const std::vector<int>& validIDs) 
     {
         std::vector<double> validIDsDouble(validIDs.begin(), validIDs.end());
@@ -287,15 +313,8 @@ namespace LimelightHelpers
         return getLimelightNTDoubleArray(limelightName, "llpython");
     }
 
-    /////
-    /////
 
-    // Take async snapshot
-
-    /////
-    /////
-
-    inline double extractBotPoseEntry(const std::vector<double>& inData, int position) {
+    inline double extractArrayEntry(const std::vector<double>& inData, int position) {
         if (inData.size() < static_cast<size_t>(position + 1)) {
             return 0.0;
         }
@@ -316,6 +335,97 @@ namespace LimelightHelpers
         RawFiducial(int id, double txnc, double tync, double ta, double distToCamera, double distToRobot, double ambiguity)
             : id(id), txnc(txnc), tync(tync), ta(ta), distToCamera(distToCamera), distToRobot(distToRobot), ambiguity(ambiguity) {}
     };
+
+    inline std::vector<RawFiducial> getRawFiducials(const std::string& limelightName) 
+    {
+        nt::NetworkTableEntry entry = LimelightHelpers::getLimelightNTTableEntry(limelightName, "rawfiducials");
+        std::vector<double> rawFiducialArray = entry.GetDoubleArray({});
+        int valsPerEntry = 7;
+        if (rawFiducialArray.size() % valsPerEntry != 0) {
+            return {};
+        }
+
+        int numFiducials = rawFiducialArray.size() / valsPerEntry;
+        std::vector<RawFiducial> rawFiducials;
+
+        for (int i = 0; i < numFiducials; ++i) {
+            int baseIndex = i * valsPerEntry;
+            int id = static_cast<int>(extractArrayEntry(rawFiducialArray, baseIndex));
+            double txnc = extractArrayEntry(rawFiducialArray, baseIndex + 1);
+            double tync = extractArrayEntry(rawFiducialArray, baseIndex + 2);
+            double ta = extractArrayEntry(rawFiducialArray, baseIndex + 3);
+            double distToCamera = extractArrayEntry(rawFiducialArray, baseIndex + 4);
+            double distToRobot = extractArrayEntry(rawFiducialArray, baseIndex + 5);
+            double ambiguity = extractArrayEntry(rawFiducialArray, baseIndex + 6);
+
+            rawFiducials.emplace_back(id, txnc, tync, ta, distToCamera, distToRobot, ambiguity);
+        }
+
+        return rawFiducials;
+    }
+
+
+    class RawDetection 
+    {
+    public:
+        int classId{-1};
+        double txnc{0.0};
+        double tync{9.0}; // It seems like you intentionally set this to 9.0, so I kept it as is.
+        double ta{0.0};
+        double corner0_X{0.0};
+        double corner0_Y{0.0};
+        double corner1_X{0.0};
+        double corner1_Y{0.0};
+        double corner2_X{0.0};
+        double corner2_Y{0.0};
+        double corner3_X{0.0};
+        double corner3_Y{0.0};
+
+        RawDetection(int classId, double txnc, double tync, double ta, 
+                    double corner0_X, double corner0_Y, 
+                    double corner1_X, double corner1_Y, 
+                    double corner2_X, double corner2_Y, 
+                    double corner3_X, double corner3_Y)
+            : classId(classId), txnc(txnc), tync(tync), ta(ta), 
+            corner0_X(corner0_X), corner0_Y(corner0_Y), 
+            corner1_X(corner1_X), corner1_Y(corner1_Y), 
+            corner2_X(corner2_X), corner2_Y(corner2_Y), 
+            corner3_X(corner3_X), corner3_Y(corner3_Y) {}
+    };
+
+    inline std::vector<RawDetection> getRawDetections(const std::string& limelightName) 
+    {
+        nt::NetworkTableEntry entry = LimelightHelpers::getLimelightNTTableEntry(limelightName, "rawdetections");
+        std::vector<double> rawDetectionArray = entry.GetDoubleArray({});
+        int valsPerEntry = 11;
+
+        if (rawDetectionArray.size() % valsPerEntry != 0) {
+            return {};
+        }
+
+        int numDetections = rawDetectionArray.size() / valsPerEntry;
+        std::vector<RawDetection> rawDetections;
+
+        for (int i = 0; i < numDetections; ++i) {
+            int baseIndex = i * valsPerEntry;
+            int classId = static_cast<int>(extractArrayEntry(rawDetectionArray, baseIndex));
+            double txnc = extractArrayEntry(rawDetectionArray, baseIndex + 1);
+            double tync = extractArrayEntry(rawDetectionArray, baseIndex + 2);
+            double ta = extractArrayEntry(rawDetectionArray, baseIndex + 3);
+            double corner0_X = extractArrayEntry(rawDetectionArray, baseIndex + 4);
+            double corner0_Y = extractArrayEntry(rawDetectionArray, baseIndex + 5);
+            double corner1_X = extractArrayEntry(rawDetectionArray, baseIndex + 6);
+            double corner1_Y = extractArrayEntry(rawDetectionArray, baseIndex + 7);
+            double corner2_X = extractArrayEntry(rawDetectionArray, baseIndex + 8);
+            double corner2_Y = extractArrayEntry(rawDetectionArray, baseIndex + 9);
+            double corner3_X = extractArrayEntry(rawDetectionArray, baseIndex + 10);
+            double corner3_Y = extractArrayEntry(rawDetectionArray, baseIndex + 11);
+
+            rawDetections.emplace_back(classId, txnc, tync, ta, corner0_X, corner0_Y, corner1_X, corner1_Y, corner2_X, corner2_Y, corner3_X, corner3_Y);
+        }
+
+        return rawDetections;
+    }
 
     class PoseEstimate
     {
@@ -346,11 +456,11 @@ namespace LimelightHelpers
         std::vector<double> poseArray = poseEntry.GetDoubleArray(std::span<double>{});
         frc::Pose2d pose = toPose2D(poseArray);
 
-        double latency = extractBotPoseEntry(poseArray, 6);
-        int tagCount = static_cast<int>(extractBotPoseEntry(poseArray, 7));
-        double tagSpan = extractBotPoseEntry(poseArray, 8);
-        double tagDist = extractBotPoseEntry(poseArray, 9);
-        double tagArea = extractBotPoseEntry(poseArray, 10);
+        double latency = extractArrayEntry(poseArray, 6);
+        int tagCount = static_cast<int>(extractArrayEntry(poseArray, 7));
+        double tagSpan = extractArrayEntry(poseArray, 8);
+        double tagDist = extractArrayEntry(poseArray, 9);
+        double tagArea = extractArrayEntry(poseArray, 10);
 
         // getLastChange: microseconds; latency: milliseconds
         units::time::second_t timestamp = units::time::second_t((poseEntry.GetLastChange() / 1000000.0) - (latency / 1000.0));
@@ -364,13 +474,13 @@ namespace LimelightHelpers
             for (int i = 0; i < tagCount; i++) 
             {
                 int baseIndex = 11 + (i * valsPerFiducial);
-                int id = static_cast<int>(extractBotPoseEntry(poseArray, baseIndex));
-                double txnc = extractBotPoseEntry(poseArray, baseIndex + 1);
-                double tync = extractBotPoseEntry(poseArray, baseIndex + 2);
-                double ta = extractBotPoseEntry(poseArray, baseIndex + 3);
-                double distToCamera = extractBotPoseEntry(poseArray, baseIndex + 4);
-                double distToRobot = extractBotPoseEntry(poseArray, baseIndex + 5);
-                double ambiguity = extractBotPoseEntry(poseArray, baseIndex + 6);
+                int id = static_cast<int>(extractArrayEntry(poseArray, baseIndex));
+                double txnc = extractArrayEntry(poseArray, baseIndex + 1);
+                double tync = extractArrayEntry(poseArray, baseIndex + 2);
+                double ta = extractArrayEntry(poseArray, baseIndex + 3);
+                double distToCamera = extractArrayEntry(poseArray, baseIndex + 4);
+                double distToRobot = extractArrayEntry(poseArray, baseIndex + 5);
+                double ambiguity = extractArrayEntry(poseArray, baseIndex + 6);
                 rawFiducials.emplace_back(id, txnc, tync, ta, distToCamera, distToRobot, ambiguity);
             }
         }
