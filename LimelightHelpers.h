@@ -15,7 +15,7 @@
 #include <unistd.h>
 //#include <curl/curl.h>
 #include <vector>
-#include <chrono>
+#include <chrono>nkl,m
 #include <iostream>
 #include <frc/geometry/Translation2d.h>
 #include <frc/geometry/Translation3d.h>
@@ -28,6 +28,10 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <fcntl.h>
+
+// Fixes some function calls
+#define _POSIX_C_SOURCE 200809L
+
     
 namespace LimelightHelpers
 {
